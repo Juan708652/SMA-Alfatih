@@ -87,7 +87,8 @@
 {{-- ============ ARTIKEL ============ --}}
 <section class="bg-slate-50 py-16 lg:py-20">
     <div class="mx-auto max-w-4xl px-4 lg:px-6">
-        <x-reveal type="up" :delay="80">
+        {{-- Isi artikel dibuat tanpa animasi reveal: konten utama harus langsung
+             tampil di semua perangkat, tidak boleh bergantung pada JavaScript. --}}
         <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
             @if ($news->thumbnail)
                 <div class="h-64 w-full overflow-hidden bg-slate-100 sm:h-80 lg:h-96">
@@ -117,7 +118,6 @@
                 </div>
             </article>
         </div>
-        </x-reveal>
 
         {{-- ============ KOMENTAR ============ --}}
         <x-reveal type="up" :delay="120">
