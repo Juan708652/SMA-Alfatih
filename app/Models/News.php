@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Str;
 
 class News extends Model
 {
@@ -55,5 +56,19 @@ class News extends Model
         return $query->where('is_published', true)
             ->whereNotNull('published_at')
             ->where('published_at', '<=', now());
+    }
+
+    /**
+     * Teks deskripsi singkat untuk kartu berita.
+     *
+     * Memakai kolom excerpt bila tersedia, jika kosong dibuat otomatis dari isi
+     * (content) artikel sehingga kartu berita selalu menampilkan deskripsi.
+     */
+    public function excerptPreview(int $length = 110): string
+    {
+        return trim((string) ($this->excerpt ?? '')) ?: Str::limit(
+            Str::squish(strip_tags((string) $this->content)),
+            $length
+        );
     }
 }

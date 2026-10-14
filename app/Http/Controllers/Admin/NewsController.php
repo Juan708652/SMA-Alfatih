@@ -7,6 +7,7 @@ use App\Http\Requests\NewsRequest;
 use App\Models\Category;
 use App\Models\News;
 use App\Traits\HasDeleteAll;
+use Illuminate\Support\Str;
 
 class NewsController extends Controller
 {
@@ -49,6 +50,7 @@ class NewsController extends Controller
     {
         $data = $request->validated();
         $data['content'] = sanitize_html($data['content'] ?? null);
+        $data['excerpt'] = $this->fillExcerpt($data);
 
         $data['user_id'] = auth()->id();
         $data['is_published'] = $request->boolean('is_published');
@@ -73,6 +75,7 @@ class NewsController extends Controller
     {
         $data = $request->validated();
         $data['content'] = sanitize_html($data['content'] ?? null);
+        $data['excerpt'] = $this->fillExcerpt($data);
 
         if ($request->hasFile('thumbnail')) {
             delete_file($news->thumbnail);
@@ -97,5 +100,19 @@ class NewsController extends Controller
         $news->delete();
 
         return redirect()->route('admin.news.index')->with('success', 'Berita berhasil dihapus.');
+    }
+
+    /**
+     * Isi kolom excerpt bila kosong, diambil dari ringkasan isi berita.
+     */
+    private function fillExcerpt(array $data): string
+    {
+        $excerpt = trim((string) ($data['excerpt'] ?? ''));
+
+        if ($excerpt !== '') {
+            return $excerpt;
+        }
+
+        return Str::limit(Str::squish(strip_tags((string) ($data['content'] ?? ''))), 155);
     }
 }

@@ -781,8 +781,8 @@
                                 {{ $item->published_at?->translatedFormat('d F Y') ?? $item->created_at->translatedFormat('d F Y') }}
                             </div>
                             <h3 class="mt-2 line-clamp-2 text-base font-bold leading-snug text-emerald-950 group-hover:text-emerald-700">{{ $item->title }}</h3>
-                            @if ($item->excerpt)
-                                <p class="mt-2 line-clamp-2 text-sm leading-relaxed text-slate-500">{{ $item->excerpt }}</p>
+                            @if ($item->excerptPreview())
+                                <p class="mt-2 line-clamp-2 text-sm leading-relaxed text-slate-500">{{ $item->excerptPreview() }}</p>
                             @endif
                         </div>
                     </a>

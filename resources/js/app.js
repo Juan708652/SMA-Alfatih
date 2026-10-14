@@ -215,7 +215,9 @@ Alpine.start();
 
 const revealElements = () => document.querySelectorAll('.reveal:not(.reveal-shown)');
 
-if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+if (!('IntersectionObserver' in window) || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    // Browser lama atau pengguna dengan pengaturan gerak dikurangi:
+    // tampilkan semua konten langsung tanpa animasi.
     revealElements().forEach((el) => el.classList.add('reveal-shown'));
 } else {
     const io = new IntersectionObserver(
@@ -227,8 +229,19 @@ if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
                 }
             });
         },
-        { threshold: 0.15, rootMargin: '0px 0px -40px 0px' }
+        // threshold 0 (bukan 0.15): elemen yang sangat tinggi — misalnya isi
+        // artikel berita selengkapnya di HP — langsung muncul begitu sebagian
+        // kecil terlihat. Dengan threshold 0.15, elemen setinggi >6.000px tidak
+        // pernah mencapai 15% terlihat di layar HP sehingga konten selamanya
+        // tersembunyi (opacity: 0). rootMargin dipertahankan sebagai jeda halus.
+        { threshold: 0, rootMargin: '0px 0px -40px 0px' }
     );
 
     revealElements().forEach((el) => io.observe(el));
+
+    // Jaring pengaman: apa pun kondisinya, konten tidak boleh tertinggal tak
+    // terlihat (mis. observasi gagal di perangkat tertentu).
+    setTimeout(() => {
+        revealElements().forEach((el) => el.classList.add('reveal-shown'));
+    }, 2500);
 }
