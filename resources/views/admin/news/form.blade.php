@@ -30,7 +30,7 @@
                 <x-admin.field label="Kategori">
                     <x-admin.select name="category_id" :options="$categories->pluck('name', 'id')" :value="$news->category_id ?? null" placeholder="Pilih Kategori" />
                 </x-admin.field>
-                <x-admin.field label="Tanggal Terbit">
+                <x-admin.field label="Tanggal Terbit" name="published_at" hint="Waktu Indonesia Barat (WIB). Kosongkan agar otomatis tayang saat dipublikasikan.">
                     <x-admin.input type="datetime-local" name="published_at" :value="isset($news) && $news->published_at ? $news->published_at->format('Y-m-d\TH:i') : ''" />
                 </x-admin.field>
             </div>

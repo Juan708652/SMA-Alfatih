@@ -760,10 +760,10 @@
         </x-reveal>
             <div class="mt-12 grid gap-8 md:grid-cols-3">
                 @foreach ($news as $item)
-                    <x-reveal :delay="$loop->index * 120" class="relative">
+                    <x-reveal :delay="$loop->index * 120" class="relative flex">
                     <a href="{{ route('news.show', $item) }}"
-                       class="group block overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
-                        <div class="relative h-52 overflow-hidden bg-slate-100">
+                       class="group flex h-full w-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
+                        <div class="relative h-52 shrink-0 overflow-hidden bg-slate-100">
                             @if ($item->thumbnail)
                                 <img src="{{ img_url($item->thumbnail) }}" alt="{{ $item->title }}" class="h-full w-full object-cover transition duration-500 group-hover:scale-105">
                             @else
@@ -775,15 +775,23 @@
                                 <span class="absolute left-3 top-3 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-700 px-3 py-1 text-[12px] font-bold text-white shadow-sm">{{ $item->category->name }}</span>
                             @endif
                         </div>
-                        <div class="p-5">
+                        <div class="flex flex-1 flex-col p-5">
                             <div class="flex items-center gap-2 text-xs text-slate-400">
-                                <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                                {{ $item->published_at?->translatedFormat('d F Y') ?? $item->created_at->translatedFormat('d F Y') }}
+                                <svg class="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                                <span>{{ $item->published_at?->translatedFormat('d F Y') ?? $item->created_at->translatedFormat('d F Y') }}</span>
+                                @if ($item->author)
+                                    <span class="mx-1 h-3 w-px shrink-0 bg-slate-300"></span>
+                                    <span class="truncate">{{ $item->author->name }}</span>
+                                @endif
                             </div>
                             <h3 class="mt-2 line-clamp-2 text-base font-bold leading-snug text-emerald-950 group-hover:text-emerald-700">{{ $item->title }}</h3>
                             @if ($item->excerptPreview())
                                 <p class="mt-2 line-clamp-2 text-sm leading-relaxed text-slate-500">{{ $item->excerptPreview() }}</p>
                             @endif
+                            <span class="mt-auto inline-flex items-center gap-1.5 pt-4 text-xs font-bold text-emerald-700 group-hover:text-emerald-800">
+                                Baca Selengkapnya
+                                <svg class="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
+                            </span>
                         </div>
                     </a>
                     <div class="absolute right-3 top-3 z-10">
