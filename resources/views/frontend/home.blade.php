@@ -760,7 +760,7 @@
         </x-reveal>
             <div class="mt-12 grid gap-8 md:grid-cols-3">
                 @foreach ($news as $item)
-                    <x-reveal :delay="$loop->index * 120">
+                    <x-reveal :delay="$loop->index * 120" class="relative">
                     <a href="{{ route('news.show', $item) }}"
                        class="group block overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
                         <div class="relative h-52 overflow-hidden bg-slate-100">
@@ -786,6 +786,9 @@
                             @endif
                         </div>
                     </a>
+                    <div class="absolute right-3 top-3 z-10">
+                        <x-share-button :url="route('news.show', $item)" :title="$item->title" />
+                    </div>
                     </x-reveal>
                 @endforeach
             </div>

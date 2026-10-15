@@ -50,7 +50,7 @@
                 @else
                     <div class="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
                         @foreach ($news as $item)
-                            <x-reveal :delay="$loop->index * 100" class="flex">
+                            <x-reveal :delay="$loop->index * 100" class="relative flex">
                             <a href="{{ route('news.show', $item) }}"
                                class="group flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
                                 <div class="relative h-44 overflow-hidden bg-slate-100">
@@ -84,6 +84,9 @@
                                     </span>
                                 </div>
                             </a>
+                            <div class="absolute right-3 top-3 z-10">
+                                <x-share-button :url="route('news.show', $item)" :title="$item->title" />
+                            </div>
                             </x-reveal>
                         @endforeach
                     </div>

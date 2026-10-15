@@ -211,6 +211,82 @@ Alpine.data('prestasiSlider', (photos) => ({
     },
 }));
 
+/**
+ * Tombol bagikan tautan (berita & kegiatan).
+ *
+ * - `copy()` menyalin `url` ke clipboard (dengan fallback untuk browser lama).
+ * - `nativeOrCopy()` memakai Web Share API bila tersedia (umumnya di HP),
+ *   dan otomatis menyalin tautan bila tidak didukung (desktop).
+ */
+Alpine.data('shareLink', (url, title = '') => ({
+    url,
+    title,
+    copied: false,
+    copiedTimer: null,
+
+    get canNative() {
+        return typeof navigator !== 'undefined' && typeof navigator.share === 'function';
+    },
+
+    async copy() {
+        let ok = false;
+
+        try {
+            if (navigator.clipboard && window.isSecureContext) {
+                await navigator.clipboard.writeText(this.url);
+                ok = true;
+            }
+        } catch (e) {
+            ok = false;
+        }
+
+        if (!ok) {
+            this.copyFallback(this.url);
+        }
+
+        this.copied = true;
+        clearTimeout(this.copiedTimer);
+        this.copiedTimer = setTimeout(() => {
+            this.copied = false;
+        }, 2200);
+    },
+
+    copyFallback(text) {
+        const el = document.createElement('textarea');
+        el.value = text;
+        el.setAttribute('readonly', '');
+        el.style.position = 'fixed';
+        el.style.top = '-1000px';
+        el.style.opacity = '0';
+        document.body.appendChild(el);
+        el.select();
+        el.setSelectionRange(0, el.value.length);
+
+        try {
+            document.execCommand('copy');
+        } catch (e) {
+            // Tidak ada cara lain; abaikan.
+        }
+
+        document.body.removeChild(el);
+    },
+
+    async nativeOrCopy() {
+        if (this.canNative) {
+            try {
+                await navigator.share({ title: this.title || document.title, url: this.url });
+                return;
+            } catch (e) {
+                if (e && e.name === 'AbortError') {
+                    return;
+                }
+            }
+        }
+
+        this.copy();
+    },
+}));
+
 Alpine.start();
 
 const revealElements = () => document.querySelectorAll('.reveal:not(.reveal-shown)');
