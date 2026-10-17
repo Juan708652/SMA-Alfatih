@@ -1,0 +1,151 @@
+name: Build paket InfinityFree
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/build-infinityfree.yml'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, xml, curl, fileinfo, gd, pdo_sqlite, sqlite3
+          tools: composer:v2
+          coverage: none
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Composer install (tanpa dev, tanpa optimize biar file kecil)
+        run: |
+          mkdir -p bootstrap/cache storage/framework/cache/data storage/framework/sessions storage/framework/views storage/logs
+          export APP_KEY="base64:$(openssl rand -base64 32)"
+          composer install --no-dev --prefer-dist --no-interaction
+
+      - name: Build frontend (Vite)
+        run: |
+          npm ci
+          npm run build
+          test -d public/build
+
+      - name: Patch config untuk InfinityFree
+        run: |
+          sed -i "s#database_path('database.sqlite')#base_path('data/database.sqlite')#" config/database.php
+          sed -i "s#'root' => storage_path('app/public'),#'root' => public_path('storage'),#" config/filesystems.php
+          grep -q "base_path('data/database.sqlite')" config/database.php
+          grep -q "'root' => public_path('storage')," config/filesystems.php
+
+      - name: Susun paket deploy
+        run: |
+          set -e
+          mkdir dist
+          rsync -a \
+            --exclude='/.git' --exclude='/.github' --exclude='/node_modules' \
+            --exclude='/tests' --exclude='/docs' --exclude='/scripts' \
+            --exclude='/.env' --exclude='/*.md' \
+            --exclude='/package.json' --exclude='/package-lock.json' \
+            --exclude='/vite.config.js' --exclude='/tailwind.config.js' --exclude='/postcss.config.js' \
+            --exclude='/phpunit.xml' --exclude='/.editorconfig' --exclude='/.gitattributes' --exclude='/.gitignore' \
+            ./ dist/
+
+          for d in data public/storage storage/app/private storage/app/public storage/framework/cache/data storage/framework/sessions storage/framework/views storage/logs bootstrap/cache; do
+            mkdir -p "dist/$d"
+            touch "dist/$d/.gitkeep"
+          done
+
+          # .htaccess root: arahkan semua ke public/, tanpa redirect domain
+          cat > dist/.htaccess <<'EOF'
+          <IfModule mod_negotiation.c>
+              Options -MultiViews -Indexes
+          </IfModule>
+
+          <IfModule mod_rewrite.c>
+              RewriteEngine On
+
+              RewriteRule ^(app|bootstrap|config|database|resources|routes|tests|vendor|node_modules|data|docs|scripts)(/|$) - [F,L]
+              RewriteRule ^(\.env|\.env\..*)$ - [F,L]
+              RewriteRule ^(composer\.json|composer\.lock|artisan)$ - [F,L]
+
+              RewriteCond %{REQUEST_URI} !^/public(/|$)
+              RewriteRule ^(.*)$ public/$1 [L]
+          </IfModule>
+          EOF
+
+          # Cadangan: tolak akses langsung ke folder internal
+          for d in app bootstrap config database resources routes vendor storage data; do
+            cat > "dist/$d/.htaccess" <<'EOF'
+          <IfModule mod_authz_core.c>
+              Require all denied
+          </IfModule>
+          <IfModule !mod_authz_core.c>
+              Deny from all
+          </IfModule>
+          EOF
+          done
+
+          # Installer sekali pakai (pengganti artisan, karena tidak ada SSH)
+          cat > dist/public/install.php <<'EOF'
+          <?php
+          // Installer sekali pakai. Akses: /install.php?token=ISI_INSTALL_TOKEN
+          // File ini menghapus dirinya sendiri kalau berhasil. Kalau tidak, HAPUS manual.
+          @set_time_limit(300);
+          header('Content-Type: text/plain; charset=utf-8');
+
+          $base = dirname(__DIR__);
+
+          try {
+              require $base.'/vendor/autoload.php';
+              $app = require $base.'/bootstrap/app.php';
+              $kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
+              $kernel->bootstrap();
+
+              $token = (string) env('INSTALL_TOKEN', '');
+              if ($token === '' || ! hash_equals($token, (string) ($_GET['token'] ?? ''))) {
+                  http_response_code(403);
+                  exit("Token salah atau INSTALL_TOKEN belum diisi di .env\n");
+              }
+
+              foreach (['data', 'public/storage', 'storage/app/private', 'storage/app/public', 'storage/framework/cache/data', 'storage/framework/sessions', 'storage/framework/views', 'storage/logs', 'bootstrap/cache'] as $dir) {
+                  if (! is_dir($base.'/'.$dir)) {
+                      mkdir($base.'/'.$dir, 0755, true);
+                  }
+              }
+
+              $db = $base.'/data/database.sqlite';
+              if (! file_exists($db)) {
+                  touch($db);
+              }
+
+              $kernel->call('migrate', ['--force' => true, '--seed' => true]);
+              echo $kernel->output();
+
+              echo "\nSELESAI. Database: data/database.sqlite\n";
+              echo @unlink(__FILE__) ? "install.php sudah dihapus otomatis.\n" : "HAPUS install.php secara manual sekarang!\n";
+              echo "Lanjut: kosongkan SEED_ADMIN_PASSWORD dan INSTALL_TOKEN di .env, lalu login ke /login.\n";
+          } catch (Throwable $e) {
+              http_response_code(500);
+              echo 'GAGAL: '.get_class($e).': '.$e->getMessage()."\n";
+          }
+          EOF
+
+          echo "== File PHP > 1 MB (InfinityFree menolak diam-diam) =="
+          find dist -name '*.php' -size +1M -print || true
+          echo "== Jumlah file =="
+          find dist -type f | wc -l
+          du -sh dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: paket-infinityfree
+          path: dist
+          include-hidden-files: true
+          retention-days: 7
+          compression-level: 6
